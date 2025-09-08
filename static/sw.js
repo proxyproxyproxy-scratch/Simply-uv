@@ -17,7 +17,7 @@ self.addEventListener('fetch', (event) => {
         return await dynamic.fetch(event)
       }
 
-      if (event.request.url.startsWith(location.origin + '/a/')) {
+      if (event.request.url.startsWith(location.origin + '/ikisugi/')) {
         return await uv.fetch(event)
       }
 
