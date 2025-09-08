@@ -1,6 +1,6 @@
 window.addEventListener('load', () => {
   navigator.serviceWorker.register('../sw.js?v=4', {
-    scope: '/a/',
+    scope: '/ikisugi/',
   })
 })
 
@@ -31,9 +31,9 @@ function processUrl(value, path) {
   if (path) {
     location.href = path
   } else if (dy === 'true') {
-    window.location.href = '/a/q/' + __uv$config.encodeUrl(url)
+    window.location.href = '/ikisugi/q/' + __uv$config.encodeUrl(url)
   } else {
-    window.location.href = '/a/' + __uv$config.encodeUrl(url)
+    window.location.href = '/ikisugi/' + __uv$config.encodeUrl(url)
   }
 }
 
@@ -46,7 +46,7 @@ function blank(value) {
 }
 
 function dy(value) {
-  processUrl(value, '/a/q/' + __uv$config.encodeUrl(value))
+  processUrl(value, '/ikisugi/q/' + __uv$config.encodeUrl(value))
 }
 
 function isUrl(val = '') {
