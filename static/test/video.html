@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Unblocker</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background-color: black;
+        color: white;
+        text-align: center;
+      }
+      iframe {
+        width: 100%;
+        height: 563px;
+      }
+      button {
+        padding: 10px;
+        border-radius: 4px;
+        color: white;
+        background-color: #2d2d2d;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>YouTube Unblocker</h1>
+    <button id="submit">Watch Video</button>
+    <div id="video-holder" style="display:none;">
+      <iframe id="video" frameborder="0" allowfullscreen></iframe>
+    </div>
+    <script>
+      const base = "https://www.youtube-nocookie.com/embed/";
+      const end = "?wmode=transparent&autoplay=0&showinfo=0&rel=0&modestbranding=1";
+      const strip_timestamps = /\?t=\d+/;
+
+      function extractVideoIdFromHash() {
+        const hash = window.location.hash;
+        const url = decodeURIComponent(hash.replace("#", ""));
+        const videoId = url.replace(strip_timestamps, "").split("v=")[1]?.substring(0, 11);
+        return videoId;
+      }
+
+      function loadVideo() {
+        const videoId = extractVideoIdFromHash();
+        if (videoId) {
+          document.getElementById('video').src = base + videoId + end;
+          document.getElementById('video-holder').style.display = 'block';
+        } else {
+          alert("Invalid YouTube URL in hash");
+        }
+      }
+
+      document.getElementById('submit').onclick = function() {
+        loadVideo();
+      };
+
+      // Auto-load video if hash is present
+      if (window.location.hash) {
+        loadVideo();
+      }
+    </script>
+  </body>
+</html>
