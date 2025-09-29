@@ -7,41 +7,30 @@
 <style>
   body { margin:0; overflow:hidden; }
   canvas { display:block; }
-  #instructions {
-    position:absolute; top:50%; width:100%; text-align:center;
-    color:white; font-size:24px; font-family:sans-serif;
-  }
 </style>
 </head>
 <body>
-<div id="instructions">クリック/タップで操作開始 (WASD移動、マウス/タッチで視点)</div>
 <canvas id="canvas"></canvas>
 
 <script src="https://unpkg.com/three@0.137.4/build/three.min.js"></script>
-
 <script>
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 1, 500);
-
-// レンダラー
 const renderer = new THREE.WebGLRenderer({canvas: document.querySelector('#canvas')});
 renderer.setSize(window.innerWidth, window.innerHeight);
 
-// 光源
 scene.add(new THREE.AmbientLight(0xffffff,0.6));
 const dirLight = new THREE.DirectionalLight(0xffffff,0.6);
 dirLight.position.set(100,200,100);
 scene.add(dirLight);
 
-// テクスチャ
 const blockSize = 25;
 const texture = new THREE.TextureLoader().load("images/dirt.png");
 texture.magFilter = THREE.NearestFilter;
 texture.minFilter = THREE.NearestMipMapNearestFilter;
 
-// ブロック作成関数
 function createBlock(x,y,z){
     const geometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
     const material = new THREE.MeshLambertMaterial({map: texture});
@@ -50,19 +39,16 @@ function createBlock(x,y,z){
     scene.add(cube);
 }
 
-// 地面作成
 for(let i=-5;i<=5;i++){
     for(let j=-5;j<=5;j++){
         createBlock(i*blockSize, 0, j*blockSize);
     }
 }
 
-// プレイヤー
 const player = {x:0, y:0, z:0};
-let yaw = 0, pitch = 0; // 視線角度
+let yaw = 0, pitch = 0;
 const maxPitch = 89 * Math.PI/180;
 
-// 移動
 const move = {forward:false, backward:false, left:false, right:false};
 document.addEventListener('keydown',(e)=>{
     switch(e.code){
@@ -111,14 +97,11 @@ document.addEventListener('touchmove',(e)=>{
     }
 });
 
-// Raycasterでめり込み回避
 const raycaster = new THREE.Raycaster();
 
-// アニメーションループ
 function animate(){
     requestAnimationFrame(animate);
 
-    // 移動
     const speed = 2;
     const dir = new THREE.Vector3();
     if(move.forward) dir.z -= 1;
@@ -127,17 +110,14 @@ function animate(){
     if(move.right) dir.x += 1;
     dir.normalize();
 
-    // カメラ向きベクトル
     const forward = new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
     const right = new THREE.Vector3(Math.sin(yaw+Math.PI/2),0,Math.cos(yaw+Math.PI/2));
 
     player.x += forward.x*dir.z*speed + right.x*dir.x*speed;
-    player.z += forward.z*dir.z*speed + right.z*dir.x*speed;
+    player.z += forward.z*dir.z + right.z*dir.x*speed;
 
-    // カメラ理想位置
     let desiredCamPos = new THREE.Vector3(player.x, player.y+blockSize, player.z);
 
-    // Raycasterでブロックめり込みチェック
     const camDir = desiredCamPos.clone().sub(new THREE.Vector3(player.x,player.y,player.z)).normalize();
     const distance = desiredCamPos.distanceTo(new THREE.Vector3(player.x,player.y,player.z));
     raycaster.set(new THREE.Vector3(player.x,player.y,player.z), camDir);
@@ -151,7 +131,6 @@ function animate(){
 
     camera.position.copy(desiredCamPos);
 
-    // カメラtarget
     const target = new THREE.Vector3(player.x, player.y+blockSize, player.z);
     const offset = new THREE.Vector3(
         Math.sin(yaw)*Math.cos(pitch),
@@ -164,7 +143,6 @@ function animate(){
 }
 animate();
 
-// リサイズ
 window.addEventListener('resize',()=>{
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
