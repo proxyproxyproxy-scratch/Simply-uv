@@ -103,8 +103,8 @@
   joystick.on('move', (evt, data)=>{
     const rad = data.angle.radian;
     // 前進成分 (y軸回転に合わせて)
-    moveForward = Math.cos(rad) * data.distance * 0.02;
-    moveRight   = Math.sin(rad) * data.distance * 0.02;
+    moveForward = Math.sin(rad) * data.distance * 0.02;
+    moveRight   = Math.cos(rad) * data.distance * 0.02;
   });
 
   joystick.on('end', ()=>{
