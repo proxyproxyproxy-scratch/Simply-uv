@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Three.js マイクラ風地面（一人称視点）</title>
+<style>
+  body { margin:0; overflow:hidden; }
+  canvas { display:block;}
+  #instructions {
+    position: absolute; top: 50%; width: 100%; text-align:center;
+    color: white; font-size: 24px; font-family: sans-serif;
+  }
+</style>
+</head>
+<body>
+<div id="instructions">クリックして操作開始 (WASD 移動、マウス視点)</div>
+<canvas id="canvas"></canvas>
+<script src="https://unpkg.com/three@0.137.4/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.137.4/examples/js/controls/PointerLockControls.js"></script>
+
+<script>
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb); // 空色
+
+// カメラ
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 1, 500);
+camera.position.set(0, 50, 0); // 目の高さ
+
+// レンダラー
+const renderer = new THREE.WebGLRenderer({canvas: document.querySelector('#canvas')});
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+// 光源
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+dirLight.position.set(100, 200, 100);
+scene.add(dirLight);
+
+// テクスチャ
+const blockSize = 25;
+const texture = new THREE.TextureLoader().load("images/dirt.png");
+texture.magFilter = THREE.NearestFilter;
+texture.minFilter = THREE.NearestMipMapNearestFilter;
+
+// ブロック作成関数
+function createBlock(x, y, z){
+    const geometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
+    const tileUvWidth  = 1/4;
+    const tileUvHeight = 1/3;
+    function applyFaceUV(faceIndex, tx, ty){
+        const uvs = geometry.attributes.uv.array;
+        const offset = faceIndex * 4 * 2;
+        const u0 = tx * tileUvWidth;
+        const v0 = 1 - (ty+1) * tileUvHeight;
+        const u1 = (tx+1) * tileUvWidth;
+        const v1 = 1 - ty * tileUvHeight;
+        uvs[offset]   = u0; uvs[offset+1] = v1;
+        uvs[offset+2] = u1; uvs[offset+3] = v1;
+        uvs[offset+4] = u0; uvs[offset+5] = v0;
+        uvs[offset+6] = u1; uvs[offset+7] = v0;
+    }
+    applyFaceUV(0, 2, 1); applyFaceUV(1, 0, 1);
+    applyFaceUV(2, 1, 0); applyFaceUV(3, 1, 2);
+    applyFaceUV(4, 1, 1); applyFaceUV(5, 3, 1);
+    geometry.attributes.uv.needsUpdate = true;
+
+    const material = new THREE.MeshLambertMaterial({ map: texture });
+    const cube = new THREE.Mesh(geometry, material);
+    cube.position.set(x, y + blockSize/2, z);
+    scene.add(cube);
+}
+
+// 地面作成 11x11
+for(let i=-5;i<=5;i++){
+    for(let j=-5;j<=5;j++){
+        createBlock(i*blockSize, 0, j*blockSize);
+    }
+}
+
+// PointerLockControls
+const controls = new THREE.PointerLockControls(camera, document.body);
+const instructions = document.getElementById('instructions');
+
+instructions.addEventListener('click', ()=>{
+    controls.lock();
+});
+
+controls.addEventListener('lock', ()=>{
+    instructions.style.display = 'none';
+});
+controls.addEventListener('unlock', ()=>{
+    instructions.style.display = '';
+});
+
+// 移動処理
+const move = {forward:false, backward:false, left:false, right:false};
+document.addEventListener('keydown', (e)=>{
+    switch(e.code){
+        case 'KeyW': move.forward = true; break;
+        case 'KeyS': move.backward = true; break;
+        case 'KeyA': move.left = true; break;
+        case 'KeyD': move.right = true; break;
+    }
+});
+document.addEventListener('keyup', (e)=>{
+    switch(e.code){
+        case 'KeyW': move.forward = false; break;
+        case 'KeyS': move.backward = false; break;
+        case 'KeyA': move.left = false; break;
+        case 'KeyD': move.right = false; break;
+    }
+});
+
+// アニメーションループ
+const velocity = new THREE.Vector3();
+function animate(){
+    requestAnimationFrame(animate);
+
+    const speed = 2;
+    const direction = new THREE.Vector3();
+    if(move.forward) direction.z -= 1;
+    if(move.backward) direction.z += 1;
+    if(move.left) direction.x -= 1;
+    if(move.right) direction.x += 1;
+    direction.normalize();
+
+    if(controls.isLocked){
+        velocity.x = direction.x * speed;
+        velocity.z = direction.z * speed;
+
+        // カメラ前方方向に合わせて移動
+        const forward = new THREE.Vector3();
+        controls.getDirection(forward);
+        forward.y = 0; forward.normalize();
+
+        const right = new THREE.Vector3();
+        right.crossVectors(forward, new THREE.Vector3(0,1,0));
+
+        camera.position.add(forward.multiplyScalar(velocity.z));
+        camera.position.add(right.multiplyScalar(velocity.x));
+    }
+
+    renderer.render(scene, camera);
+}
+animate();
+
+// リサイズ対応
+window.addEventListener('resize', ()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
