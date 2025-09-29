@@ -32,6 +32,7 @@
   // マウス操作
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 0, 0);
+  controls.enableZoom = false; // ここで拡大縮小OFF
   controls.update();
 
   // 光源
