@@ -14,17 +14,45 @@
 <script src="https://unpkg.com/three@0.137.4/build/three.min.js"></script>
 
 <script>
-let moveForward = false;
-let moveBackward = false;
-let moveLeft = false;
-let moveRight = false;
+/////////////////////////
+// シーン・カメラ・レンダラー
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
 
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0, 50, 50);
+
+const renderer = new THREE.WebGLRenderer({canvas: document.querySelector('#canvas')});
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+/////////////////////////
+// 光源
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+dirLight.position.set(100, 200, 100);
+scene.add(dirLight);
+
+/////////////////////////
+// 地面ブロック
+const blockSize = 25;
+const geometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
+const material = new THREE.MeshLambertMaterial({color:0x8B4513});
+for(let i=-5;i<=5;i++){
+  for(let j=-5;j<=5;j++){
+    const cube = new THREE.Mesh(geometry, material);
+    cube.position.set(i*blockSize, blockSize/2, j*blockSize);
+    scene.add(cube);
+  }
+}
+
+/////////////////////////
+// FPS風カメラ操作
+let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
-const speed = 0.5; // 移動速度
+const speed = 0.5;
 
-// キー操作
-document.addEventListener('keydown', (event) => {
+document.addEventListener('keydown', (event)=>{
   switch(event.code){
     case 'KeyW': moveForward = true; break;
     case 'KeyS': moveBackward = true; break;
@@ -32,7 +60,7 @@ document.addEventListener('keydown', (event) => {
     case 'KeyD': moveRight = true; break;
   }
 });
-document.addEventListener('keyup', (event) => {
+document.addEventListener('keyup', (event)=>{
   switch(event.code){
     case 'KeyW': moveForward = false; break;
     case 'KeyS': moveBackward = false; break;
@@ -41,12 +69,9 @@ document.addEventListener('keyup', (event) => {
   }
 });
 
-// マウスで回転
-let pitch = 0;
-let yaw = 0;
-let isMouseDown = false;
-document.addEventListener('mousedown', () => isMouseDown = true);
-document.addEventListener('mouseup', () => isMouseDown = false);
+let pitch=0, yaw=0, isMouseDown=false;
+document.addEventListener('mousedown', ()=> isMouseDown=true);
+document.addEventListener('mouseup', ()=> isMouseDown=false);
 document.addEventListener('mousemove', (event)=>{
   if(!isMouseDown) return;
   yaw   -= event.movementX * 0.002;
@@ -54,11 +79,11 @@ document.addEventListener('mousemove', (event)=>{
   pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
 });
 
-// アニメーションループ内で移動
+/////////////////////////
+// アニメーション
 function animate(){
   requestAnimationFrame(animate);
 
-  // 移動方向
   direction.set(0,0,0);
   if(moveForward) direction.z -= 1;
   if(moveBackward) direction.z += 1;
@@ -66,22 +91,28 @@ function animate(){
   if(moveRight) direction.x += 1;
   direction.normalize();
 
-  // カメラ向きに合わせてワールド座標に変換
   const cosYaw = Math.cos(yaw);
   const sinYaw = Math.sin(yaw);
   velocity.x = direction.x * cosYaw - direction.z * sinYaw;
   velocity.z = direction.x * sinYaw + direction.z * cosYaw;
 
-  // 位置更新
   camera.position.x += velocity.x * speed;
   camera.position.z += velocity.z * speed;
 
-  // カメラ回転
   camera.rotation.set(pitch, yaw, 0, 'YXZ');
 
   renderer.render(scene, camera);
 }
 animate();
+
+/////////////////////////
+// リサイズ対応
+window.addEventListener('resize', ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
 </script>
+
 </body>
 </html>
