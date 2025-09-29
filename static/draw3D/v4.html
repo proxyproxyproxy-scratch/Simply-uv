@@ -99,9 +99,10 @@ document.addEventListener('touchmove',(e)=>{
 
 const raycaster = new THREE.Raycaster();
 
-function animate(){
+function animate() {
     requestAnimationFrame(animate);
 
+    // 移動
     const speed = 2;
     const dir = new THREE.Vector3();
     if(move.forward) dir.z -= 1;
@@ -110,37 +111,34 @@ function animate(){
     if(move.right) dir.x += 1;
     dir.normalize();
 
+    // カメラ向きベクトル
     const forward = new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
     const right = new THREE.Vector3(Math.sin(yaw+Math.PI/2),0,Math.cos(yaw+Math.PI/2));
 
     player.x += forward.x*dir.z*speed + right.x*dir.x*speed;
     player.z += forward.z*dir.z + right.z*dir.x*speed;
 
-    let desiredCamPos = new THREE.Vector3(player.x, player.y+blockSize, player.z);
+    // カメラ位置
+    let camPos = new THREE.Vector3(player.x, player.y + blockSize, player.z);
 
-    const camDir = desiredCamPos.clone().sub(new THREE.Vector3(player.x,player.y,player.z)).normalize();
-    const distance = desiredCamPos.distanceTo(new THREE.Vector3(player.x,player.y,player.z));
-    raycaster.set(new THREE.Vector3(player.x,player.y,player.z), camDir);
-    raycaster.far = distance;
+    // Raycasterでめり込み回避
+    const camDir = new THREE.Vector3(0,0,1).applyEuler(new THREE.Euler(pitch, yaw, 0));
+    raycaster.set(new THREE.Vector3(player.x, player.y, player.z), camDir);
+    raycaster.far = blockSize * 2; // 適当な距離
     const intersects = raycaster.intersectObjects(scene.children, true);
-
-    if(intersects.length>0){
+    if(intersects.length > 0) {
         const hit = intersects[0].point;
-        desiredCamPos.copy(hit.add(camDir.clone().multiplyScalar(-0.1)));
+        camPos.copy(hit.add(camDir.clone().multiplyScalar(-0.1)));
     }
 
-    camera.position.copy(desiredCamPos);
+    camera.position.copy(camPos);
 
-    const target = new THREE.Vector3(player.x, player.y+blockSize, player.z);
-    const offset = new THREE.Vector3(
-        Math.sin(yaw)*Math.cos(pitch),
-        Math.sin(pitch),
-        Math.cos(yaw)*Math.cos(pitch)
-    );
-    camera.lookAt(target.add(offset));
+    // カメラ回転をEulerで直接設定
+    camera.rotation.set(pitch, yaw, 0);
 
     renderer.render(scene, camera);
 }
+
 animate();
 
 window.addEventListener('resize',()=>{
