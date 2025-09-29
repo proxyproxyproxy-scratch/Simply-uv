@@ -21,7 +21,7 @@
 
   // カメラ
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 5, 500);
-  camera.position.set(0, 150, 300);
+  camera.position.set(0, 50, 0);
 
   // レンダラー
   const renderer = new THREE.WebGLRenderer({
@@ -31,7 +31,7 @@
 
   // マウス操作（見渡すはON、拡大縮小OFF）
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 0, 0);
+  controls.target.set(0, 50, 50);
   controls.enableZoom = false;
   controls.update();
 
