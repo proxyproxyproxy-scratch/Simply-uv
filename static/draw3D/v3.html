@@ -80,7 +80,7 @@
 
     const material = new THREE.MeshLambertMaterial({ map: texture });
     const cube = new THREE.Mesh(geometry, material);
-    cube.position.set(x, y + blockSize/2, z);
+    cube.position.set(x, y + blockSize/2, z + 0.01);
     scene.add(cube);
   }
 
