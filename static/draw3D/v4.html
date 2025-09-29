@@ -3,158 +3,107 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FPSマイクラ風地面</title>
+<title>Three.js 3D cubes</title>
 <style>
   body { margin:0; overflow:hidden; }
-  canvas { display:block; }
+  canvas { display:block;}
 </style>
 </head>
 <body>
 <canvas id="canvas"></canvas>
-
 <script src="https://unpkg.com/three@0.137.4/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.137.4/examples/js/controls/OrbitControls.js"></script>
+
 <script>
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
+  // シーン作成
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87ceeb); // 空色
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 1, 500);
-const renderer = new THREE.WebGLRenderer({canvas: document.querySelector('#canvas')});
-renderer.setSize(window.innerWidth, window.innerHeight);
+  // カメラ
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 5, 500);
+  camera.position.set(0, 50, 0);
 
-// 光源
-scene.add(new THREE.AmbientLight(0xffffff,0.6));
-const dirLight = new THREE.DirectionalLight(0xffffff,0.6);
-dirLight.position.set(100,200,100);
-scene.add(dirLight);
+  // レンダラー
+  const renderer = new THREE.WebGLRenderer({
+    canvas: document.querySelector('#canvas')
+  });
+  renderer.setSize(window.innerWidth, window.innerHeight);
 
-// ブロックテクスチャ
-const blockSize = 25;
-const texture = new THREE.TextureLoader().load("images/dirt.png");
-texture.magFilter = THREE.NearestFilter;
-texture.minFilter = THREE.NearestMipMapNearestFilter;
+  // マウス操作（見渡すはON、拡大縮小OFF）
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 50, 25);
+  controls.enableZoom = false;
+  controls.update();
 
-// ブロック作成関数
-function createBlock(x,y,z){
+  // 光源
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+  dirLight.position.set(100, 200, 100);
+  scene.add(dirLight);
+
+  const blockSize = 25; // ブロックの大きさ
+
+  // テクスチャ（先に作っておく）
+  const texture = new THREE.TextureLoader().load("images/dirt.png");
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestMipMapNearestFilter;
+
+  // ブロック作成関数
+  function createBlock(x, y, z){
     const geometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
+
+    const tileUvWidth  = 1/4;
+    const tileUvHeight = 1/3;
+
+    function applyFaceUV(faceIndex, tx, ty){
+      const uvs = geometry.attributes.uv.array;
+      const offset = faceIndex * 4 * 2;
+      const u0 = tx * tileUvWidth;
+      const v0 = 1 - (ty+1) * tileUvHeight;
+      const u1 = (tx+1) * tileUvWidth;
+      const v1 = 1 - ty * tileUvHeight;
+
+      uvs[offset]   = u0; uvs[offset+1] = v1;
+      uvs[offset+2] = u1; uvs[offset+3] = v1;
+      uvs[offset+4] = u0; uvs[offset+5] = v0;
+      uvs[offset+6] = u1; uvs[offset+7] = v0;
+    }
+
+    // 各面にUV割り当て
+    applyFaceUV(0, 2, 1); // right
+    applyFaceUV(1, 0, 1); // left
+    applyFaceUV(2, 1, 0); // top
+    applyFaceUV(3, 1, 2); // bottom
+    applyFaceUV(4, 1, 1); // front
+    applyFaceUV(5, 3, 1); // back
+    geometry.attributes.uv.needsUpdate = true;
+
     const material = new THREE.MeshLambertMaterial({map: texture});
     const cube = new THREE.Mesh(geometry, material);
     cube.position.set(x, y + blockSize/2, z);
     scene.add(cube);
-}
+  }
 
-// 地面作成
-for(let i=-5;i<=5;i++){
+  // 地面作成
+  for(let i=-5;i<=5;i++){
     for(let j=-5;j<=5;j++){
-        createBlock(i*blockSize, 0, j*blockSize);
+      createBlock(i*blockSize, 0, j*blockSize);
     }
-}
+  }
 
-// プレイヤー
-const player = {x:0, y:0, z:0};
-let yaw = 0, pitch = 0;
-const maxPitch = 89 * Math.PI/180;
-
-// 移動
-const move = {forward:false, backward:false, left:false, right:false};
-document.addEventListener('keydown',(e)=>{
-    switch(e.code){
-        case 'KeyW': move.forward=true; break;
-        case 'KeyS': move.backward=true; break;
-        case 'KeyA': move.left=true; break;
-        case 'KeyD': move.right=true; break;
-    }
-});
-document.addEventListener('keyup',(e)=>{
-    switch(e.code){
-        case 'KeyW': move.forward=false; break;
-        case 'KeyS': move.backward=false; break;
-        case 'KeyA': move.left=false; break;
-        case 'KeyD': move.right=false; break;
-    }
-});
-
-// 視線操作（PC）
-document.addEventListener('mousemove',(e)=>{
-    const sensitivity = 0.002;
-    yaw -= e.movementX * sensitivity;
-    pitch -= e.movementY * sensitivity;
-    pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch));
-});
-
-// 視線操作（Mobile）
-let lastTouchX=0, lastTouchY=0;
-document.addEventListener('touchstart',(e)=>{
-    if(e.touches.length===1){
-        lastTouchX = e.touches[0].pageX;
-        lastTouchY = e.touches[0].pageY;
-    }
-});
-document.addEventListener('touchmove',(e)=>{
-    if(e.touches.length===1){
-        const dx = e.touches[0].pageX - lastTouchX;
-        const dy = e.touches[0].pageY - lastTouchY;
-        lastTouchX = e.touches[0].pageX;
-        lastTouchY = e.touches[0].pageY;
-
-        const sensitivity = 0.002;
-        yaw -= dx*sensitivity;
-        pitch -= dy*sensitivity;
-        pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch));
-    }
-});
-
-// Raycaster
-const raycaster = new THREE.Raycaster();
-
-function animate() {
+  // アニメーションループ
+  function animate(){
     requestAnimationFrame(animate);
-
-    // 移動
-    const speed = 2;
-    const dir = new THREE.Vector3();
-    if(move.forward) dir.z -= 1;
-    if(move.backward) dir.z += 1;
-    if(move.left) dir.x -= 1;
-    if(move.right) dir.x += 1;
-    dir.normalize();
-
-    const forward = new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
-    const right = new THREE.Vector3(Math.sin(yaw+Math.PI/2),0,Math.cos(yaw+Math.PI/2));
-
-    player.x += forward.x*dir.z*speed + right.x*dir.x*speed;
-    player.z += forward.z*dir.z*speed + right.z*dir.x*speed;
-
-    // カメラ理想位置（プレイヤーの頭上）
-    let desiredCamPos = new THREE.Vector3(player.x, player.y + blockSize, player.z);
-
-    // Raycasterでめり込み回避
-    const camOrigin = new THREE.Vector3(player.x, player.y + blockSize/2, player.z);
-    const camDir = desiredCamPos.clone().sub(camOrigin).normalize();
-    const distance = desiredCamPos.distanceTo(camOrigin);
-    raycaster.set(camOrigin, camDir);
-    raycaster.far = distance;
-    const intersects = raycaster.intersectObjects(scene.children, true);
-    if(intersects.length > 0){
-        const hit = intersects[0].point;
-        desiredCamPos.copy(hit.add(camDir.clone().multiplyScalar(-0.1)));
-    }
-
-    camera.position.copy(desiredCamPos);
-
-    // カメラ回転（Euler角で直接設定）
-    camera.rotation.set(pitch, yaw, 0);
-
     renderer.render(scene, camera);
-}
+  }
+  animate();
 
-animate();
-
-// リサイズ対応
-window.addEventListener('resize',()=>{
+  // リサイズ対応
+  window.addEventListener('resize', ()=>{
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-});
+  });
 </script>
 </body>
 </html>
