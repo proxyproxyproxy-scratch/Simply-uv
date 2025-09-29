@@ -78,7 +78,12 @@
     applyFaceUV(5, 3, 1); // back
     geometry.attributes.uv.needsUpdate = true;
 
-    const material = new THREE.MeshLambertMaterial({ map: texture });
+    const material = new THREE.MeshLambertMaterial({ 
+      map: texture,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
+    });
     const cube = new THREE.Mesh(geometry, material);
     cube.position.set(x, y + blockSize/2, z);
     scene.add(cube);
