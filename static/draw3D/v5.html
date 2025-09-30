@@ -62,8 +62,6 @@
 
   // ===== OrbitControls（見渡す用） =====
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.1;
   controls.enableZoom = false;
   controls.enablePan = false;
   controls.target.set(0, 50, 0);
