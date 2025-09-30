@@ -182,7 +182,7 @@
     camera.position.y += velocityY;
     controls.target.y += velocityY;
 
-    if(camera.position.y <= 50){ // 地面の高さ
+    if(controls.target.y <= 50){ // 地面の高さ
       controls.target.y = 50;
       camera.position.y = 50 + offsetY;
       velocityY = 0;
