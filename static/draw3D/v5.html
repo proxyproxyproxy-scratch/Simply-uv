@@ -184,7 +184,7 @@
     if(camera.position.y <= 50){ // 地面の高さ
       let offsetY = camera.position.y - controls.target.y;
       controls.target.y = 50;
-      controls.position.y = 50 + offsetY;
+      camera.position.y = 50 + offsetY;
       velocityY = 0;
       onGround = true;
     }
