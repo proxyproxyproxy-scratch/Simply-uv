@@ -136,7 +136,8 @@ window.addEventListener('keydown',(e)=>{
 
 const forward = new THREE.Vector3();
 const right = new THREE.Vector3();
-
+//今は50 アプデで変える
+const groundHeight = 50;
 function animate(){
   requestAnimationFrame(animate);
 
@@ -157,9 +158,9 @@ function animate(){
   controls.target.y += velocityY;
 
   // 着地判定
-  if(controls.target.y <= 50){
-    controls.target.y = 50;
-    camera.position.y = 50 + offsetY;
+  if(controls.target.y <= groundHeight){
+    controls.target.y = groundHeight;
+    camera.position.y = groundHeight + offsetY;
     velocityY = 0;
     onGround = true;
   }
