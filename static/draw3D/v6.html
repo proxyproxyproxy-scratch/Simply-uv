@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FPS with Blocks</title>
+<style>
+  body { margin:0; overflow:hidden; }
+  canvas { display:block; }
+  #joystick {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background-color: #ffffffcc;
+    overflow: hidden;
+  }
+  #jumpBtn {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: orange;
+    color: white;
+    font-size: 20px;
+    border: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="joystick"></div>
+<button id="jumpBtn">↑</button>
+
+<script src="https://unpkg.com/three@0.137.4/build/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
+
+<script>
+  // ===== シーン =====
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87ceeb);
+
+  // ===== カメラ =====
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 50, 150);
+
+  const blockSize = 25;
+  const playerHeight = blockSize * 2; // プレイヤー縦2ブロック
+
+  // ===== レンダラー =====
+  const renderer = new THREE.WebGLRenderer({canvas: document.querySelector("#canvas")});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  // ===== 光源 =====
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+  dirLight.position.set(100, 200, 100);
+  scene.add(dirLight);
+
+  // ===== ブロック作成 =====
+  const blocks = [];
+  const texture = new THREE.TextureLoader().load("images/dirt.png");
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestMipMapNearestFilter;
+
+  function createBlock(x, y, z){
+    const geometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
+    const material = new THREE.MeshLambertMaterial({map: texture});
+    const cube = new THREE.Mesh(geometry, material);
+    cube.position.set(x, y + blockSize/2, z);
+    scene.add(cube);
+    blocks.push({x:x, y:y, z:z, size:blockSize});
+  }
+
+  // ===== 地面 =====
+  for(let i=-5;i<=5;i++){
+    for(let j=-5;j<=5;j++){
+      createBlock(i*blockSize, 0, j*blockSize);
+    }
+  }
+
+  // ===== ジョイスティック =====
+  const joystick = nipplejs.create({
+    zone: document.getElementById('joystick'),
+    mode: 'static',
+    position: {left:'50%', top:'50%'},
+    size:200,
+    color:'blue'
+  });
+
+  let moveForward = 0;
+  let moveRight = 0;
+  joystick.on('move', (evt, data)=>{
+    const rad = data.angle.radian;
+    moveForward = Math.sin(rad)*0.02*data.distance;
+    moveRight   = Math.cos(rad)*0.02*data.distance;
+  });
+  joystick.on('end', ()=>{ moveForward = 0; moveRight = 0; });
+
+  // ===== FPSマウス視点 =====
+  let yaw = 0;
+  let pitch = 0;
+
+  document.addEventListener("mousemove", e=>{
+    if(document.pointerLockElement){
+      yaw   -= e.movementX * 0.002;
+      pitch -= e.movementY * 0.002;
+      pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
+      camera.rotation.set(pitch, yaw, 0);
+    }
+  });
+
+  document.body.addEventListener("click", ()=>{
+    document.body.requestPointerLock();
+  });
+
+  // ===== ジャンプ =====
+  let vy = 0;
+  let isGrounded = true;
+  const gravity = -0.5;
+  const jumpPower = 12;
+
+  document.getElementById("jumpBtn").addEventListener("click", ()=>{
+    if(isGrounded){ vy = jumpPower; isGrounded = false; }
+  });
+
+  // ===== 当たり判定 =====
+  function checkGround(yFeet){
+    for(let b of blocks){
+      const half = b.size/2;
+      if(
+        camera.position.x >= b.x - half && camera.position.x <= b.x + half &&
+        camera.position.z >= b.z - half && camera.position.z <= b.z + half
+      ){
+        if(yFeet <= b.y + b.size && yFeet >= b.y){
+          return b.y + b.size;
+        }
+      }
+    }
+    return null;
+  }
+
+  // ===== アニメーション =====
+  const forwardVec = new THREE.Vector3();
+  const rightVec = new THREE.Vector3();
+
+  function animate(){
+    requestAnimationFrame(animate);
+
+    // 移動ベクトル
+    forwardVec.set(Math.sin(yaw),0,-Math.cos(yaw));
+    rightVec.set(Math.cos(yaw),0,Math.sin(yaw));
+
+    camera.position.addScaledVector(forwardVec, moveForward);
+    camera.position.addScaledVector(rightVec, moveRight);
+
+    // 足の高さ
+    const yFeet = camera.position.y - playerHeight/2;
+
+    // 重力
+    vy += gravity;
+    camera.position.y += vy;
+
+    // 接地判定
+    const groundY = checkGround(yFeet);
+    if(groundY !== null){
+      camera.position.y = groundY + playerHeight/2;
+      vy = 0;
+      isGrounded = true;
+    } else {
+      isGrounded = false;
+    }
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // ===== リサイズ =====
+  window.addEventListener('resize', ()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
+</body>
+</html>
