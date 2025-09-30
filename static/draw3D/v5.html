@@ -54,7 +54,7 @@
 
   // ===== カメラ =====
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 5, 500);
-  camera.position.set(0, 50, 150);
+  camera.position.set(0, 50, 25);
 
   // ===== レンダラー =====
   const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#canvas') });
@@ -64,7 +64,7 @@
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableZoom = false;
   controls.enablePan = false;
-  controls.target.set(0, 50, 25);
+  controls.target.set(0, 50, 0);
   controls.update();
 
   // ===== 光源 =====
