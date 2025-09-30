@@ -48,6 +48,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
 
 <script>
+  let x=0
   // ===== シーン =====
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x87ceeb);
@@ -182,7 +183,9 @@
     controls.target.y += velocityY;
 
     if(camera.position.y <= 50){ // 地面の高さ
+      x = controls.position-controls.target.y;
       controls.target.y = 50;
+      controls.position.y = 50-x;
       velocityY = 0;
       onGround = true;
     }
