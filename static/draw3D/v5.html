@@ -177,12 +177,12 @@
     controls.target.addScaledVector(right, moveRight);
 
     // ジャンプ / 重力
+    offsetY = camera.position.y - controls.target.y;
     velocityY += gravity * 0.1; // 重力
     camera.position.y += velocityY;
     controls.target.y += velocityY;
 
     if(camera.position.y <= 50){ // 地面の高さ
-      offsetY = camera.position.y - controls.target.y;
       controls.target.y = 50;
       camera.position.y = 50 + offsetY;
       velocityY = 0;
