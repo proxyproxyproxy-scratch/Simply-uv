@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minecraft風 移動 + 当たり判定</title>
+<style>
+  body { margin:0; overflow:hidden; }
+  canvas { display:block; }
+  #joystick {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background-color: #ffffffcc;
+  }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="joystick"></div>
+
+<script src="https://unpkg.com/three@0.137.4/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.137.4/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
+
+<script>
+const blocksize = 25;
+
+// === シーン作成 ===
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+
+// === カメラ ===
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 1, 1000);
+camera.position.set(0, blocksize*2, blocksize*2);
+
+// === レンダラー ===
+const renderer = new THREE.WebGLRenderer({canvas: document.querySelector("#canvas")});
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+// === カメラ操作 ===
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableZoom = false;
+controls.enablePan = false;
+controls.target.set(0, blocksize, 0);
+controls.update();
+
+// === 光源 ===
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+dirLight.position.set(100,200,100);
+scene.add(dirLight);
+
+// === テクスチャ ===
+const texture = new THREE.TextureLoader().load("images/dirt.png");
+texture.magFilter = THREE.NearestFilter;
+texture.minFilter = THREE.NearestMipMapNearestFilter;
+
+// === ブロック配列 ===
+const blocks = {}; // key "x,y,z" → true
+
+function addBlock(x,y,z){
+  const geo = new THREE.BoxGeometry(blocksize, blocksize, blocksize);
+  const mat = new THREE.MeshLambertMaterial({map:texture});
+  const cube = new THREE.Mesh(geo, mat);
+  cube.position.set(x, y+blocksize/2, z);
+  scene.add(cube);
+  blocks[`${Math.floor(x/blocksize)},${Math.floor(y/blocksize)},${Math.floor(z/blocksize)}`] = true;
+}
+
+// === 地面生成 ===
+for(let i=-5;i<=5;i++){
+  for(let j=-5;j<=5;j++){
+    addBlock(i*blocksize,0,j*blocksize);
+  }
+}
+
+// === ブロック判定関数 ===
+function isBlock(bx, by, bz){
+  return blocks[`${bx},${by},${bz}`] === true;
+}
+
+// === ジョイスティック ===
+let moveX=0, moveY=0;
+const joystick = nipplejs.create({
+  zone: document.getElementById('joystick'),
+  mode: 'static',
+  position: {left:'50%',top:'50%'},
+  color: 'blue',
+  size: 150
+});
+
+joystick.on("move", (evt, data)=>{
+  const rad = data.angle.radian;
+  moveX = Math.cos(rad) * data.distance/50;
+  moveY = Math.sin(rad) * data.distance/50;
+});
+joystick.on("end", ()=>{
+  moveX=0; moveY=0;
+});
+
+// === プレイヤー物理 ===
+let velocityY = 0;
+let onGround = false;
+
+// 当たり判定付き移動
+function resolveCollision(nextPos, forward, right){
+  let bx = Math.floor(nextPos.x/blocksize);
+  let by = Math.floor(nextPos.y/blocksize);
+  let bz = Math.floor(nextPos.z/blocksize);
+
+  if(isBlock(bx,by,bz)){
+    // 1ブロック分上げてみる
+    if(!isBlock(bx,by+1,bz)){
+      nextPos.y = (by+1)*blocksize + 1;
+    }else{
+      // 上も埋まってる→押し戻す
+      nextPos.x -= forward.x*0.5 + right.x*0.5;
+      nextPos.z -= forward.z*0.5 + right.z*0.5;
+    }
+  }
+  return nextPos;
+}
+
+// === アニメーション ===
+function animate(){
+  requestAnimationFrame(animate);
+
+  // カメラ方向ベクトル
+  const forward = new THREE.Vector3();
+  camera.getWorldDirection(forward);
+  forward.y=0; forward.normalize();
+  const right = new THREE.Vector3(forward.z,0,-forward.x);
+
+  let nextPos = camera.position.clone();
+
+  // 移動
+  nextPos.addScaledVector(forward, moveY*0.5);
+  nextPos.addScaledVector(right,   moveX*0.5);
+
+  // 重力
+  velocityY -= 0.02*blocksize;
+  nextPos.y += velocityY * 0.016;
+
+  // 足元のブロック確認
+  let footY = Math.floor(nextPos.y/blocksize);
+  let bx = Math.floor(nextPos.x/blocksize);
+  let bz = Math.floor(nextPos.z/blocksize);
+
+  if(isBlock(bx,footY-1,bz)){
+    // 足元にブロック → 地面に立つ
+    nextPos.y = footY*blocksize;
+    velocityY = 0;
+    onGround = true;
+  }else{
+    onGround = false;
+  }
+
+  // 壁衝突処理
+  nextPos = resolveCollision(nextPos, forward, right);
+
+  // 適用
+  camera.position.copy(nextPos);
+  controls.target.copy(nextPos).add(new THREE.Vector3(0,blocksize*0.8,0));
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// === ジャンプキー ===
+window.addEventListener("keydown", e=>{
+  if(e.code==="Space" && onGround){
+    velocityY = 0.35*blocksize;
+    onGround = false;
+  }
+});
+
+// === リサイズ対応 ===
+window.addEventListener("resize", ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
