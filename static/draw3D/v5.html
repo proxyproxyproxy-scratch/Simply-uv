@@ -181,8 +181,7 @@
     camera.position.y += velocityY;
     controls.target.y += velocityY;
 
-    if(camera.position.y <= 50){ // 地面の高さに固定
-      camera.position.y = 50;
+    if(camera.position.y <= 50){ // 地面の高さ
       controls.target.y = 50;
       velocityY = 0;
       onGround = true;
