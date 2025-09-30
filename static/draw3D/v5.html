@@ -160,7 +160,7 @@
   // ===== アニメーション =====
   const forward = new THREE.Vector3();
   const right = new THREE.Vector3();
-
+  
   function animate(){
     requestAnimationFrame(animate);
 
@@ -182,8 +182,9 @@
     controls.target.y += velocityY;
 
     if(camera.position.y <= 50){ // 地面の高さ
+      let offsetY = camera.position.y - controls.target.y;
       controls.target.y = 50;
-      controls.target.y = 50;
+      controls.pos.y = 50 + offsetY;
       velocityY = 0;
       onGround = true;
     }
