@@ -161,24 +161,27 @@ function animate(){
   controls.target.addScaledVector(forward, moveForward);
   controls.target.addScaledVector(right, moveRight);
 
+  // offsetY 計算
+  const offsetY = camera.position.y - controls.target.y;
+
   // ジャンプ・重力
   velocityY += gravity*0.1;
-  camera.position.y += velocityY;
   controls.target.y += velocityY;
+  camera.position.y = controls.target.y + offsetY;
 
-  // 接地判定
-  const groundY = checkCollisionY(camera.position.y - 1);
-  if(camera.position.y <= groundY){
-    camera.position.y = groundY;
+  // 接地判定（target基準）
+  const groundY = checkCollisionY(controls.target.y);
+  if(controls.target.y <= groundY){
     controls.target.y = groundY;
+    camera.position.y = groundY + offsetY;
     velocityY = 0;
     onGround = true;
   }
 
   // 下限リスポーン
-  if(camera.position.y < respawnHeight){
-    camera.position.set(0, 50, 25);
+  if(controls.target.y < respawnHeight){
     controls.target.set(0, 50, 0);
+    camera.position.set(0, 50 + offsetY, 25);
     velocityY = 0;
     onGround = false;
   }
@@ -186,6 +189,7 @@ function animate(){
   controls.update();
   renderer.render(scene, camera);
 }
+
 animate();
 
 window.addEventListener('resize', ()=>{
