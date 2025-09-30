@@ -15,7 +15,7 @@
     height: 200px;
     border-radius: 50%;
     background-color: #ffffffcc;
-    touch-action: none;
+    touch-action: none; /* 既に設定済み */
   }
   #jumpBtn {
     position: fixed;
@@ -29,7 +29,7 @@
     text-align: center;
     line-height: 80px;
     user-select: none;
-    touch-action: none;
+    touch-action: none; /* 既に設定済み */
   }
 </style>
 </head>
@@ -79,7 +79,7 @@ function createBlock(x,y,z){
     uvs[offset] = u0; uvs[offset+1]=v1;
     uvs[offset+2] = u1; uvs[offset+3]=v1;
     uvs[offset+4] = u0; uvs[offset+5]=v0;
-    uvs[offset+6] = u1; uvs[offset+7]=v0;
+    uvs[offset+6] = u1; uvs[offset+7] = v0;
   }
   applyFaceUV(0,2,1); applyFaceUV(1,0,1);
   applyFaceUV(2,1,0); applyFaceUV(3,1,2);
@@ -98,13 +98,14 @@ for(let i=-5;i<=5;i++){
   }
 }
 
-// ジョイスティック
+// ジョイスティック（マルチタッチ対応）
 const joystick = nipplejs.create({
   zone: document.getElementById('joystick'),
   mode:'static',
   position:{left:'50%',top:'50%'},
   size:200,
-  color:'blue'
+  color:'blue',
+  multitouch:true
 });
 
 let moveForward=0, moveRight=0;
@@ -122,8 +123,13 @@ const gravity=-0.8, jumpSpeed=3.1;
 let onGround=true;
 
 const jumpBtn = document.getElementById('jumpBtn');
-jumpBtn.addEventListener('click',()=>{ if(onGround){ velocityY=jumpSpeed; onGround=false; } });
+const jumpHandler = () => { if(onGround){ velocityY=jumpSpeed; onGround=false; } };
 
+// iOSでも確実に反応させる
+jumpBtn.addEventListener('touchstart', jumpHandler);
+jumpBtn.addEventListener('pointerdown', jumpHandler);
+
+// キーボードスペースでもジャンプ
 window.addEventListener('keydown',(e)=>{
   if(e.code==='Space' && onGround){ velocityY=jumpSpeed; onGround=false; }
 });
