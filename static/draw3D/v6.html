@@ -131,19 +131,21 @@
 
   // ===== 当たり判定 =====
   function checkGround(yFeet){
-    for(let b of blocks){
-      const half = b.size/2;
-      if(
-        camera.position.x >= b.x - half && camera.position.x <= b.x + half &&
-        camera.position.z >= b.z - half && camera.position.z <= b.z + half
-      ){
-        if(yFeet <= b.y + b.size && yFeet >= b.y){
-          return b.y + b.size;
-        }
+  for(let b of blocks){
+    const half = b.size/2;
+    // 足がブロックの上に「少しはみ出しても接地」とする
+    if(
+      camera.position.x >= b.x - half - 0.01 && camera.position.x <= b.x + half + 0.01 &&
+      camera.position.z >= b.z - half - 0.01 && camera.position.z <= b.z + half + 0.01
+    ){
+      if(yFeet <= b.y + b.size && yFeet >= b.y - 0.1){ // 少し余裕
+        return b.y + b.size; // 接地
       }
     }
-    return null;
   }
+  return null; // 空中
+}
+
 
   // ===== アニメーション =====
   const forwardVec = new THREE.Vector3();
