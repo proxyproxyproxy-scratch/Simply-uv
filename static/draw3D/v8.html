@@ -186,7 +186,7 @@ let count=1;
 function animate(){
   requestAnimationFrame(animate);
   count +=1;
-  if(count%50==1){alert(getGroundHeight(controls.target.x,controls.target.z,controls.target.y));}
+  if(count%50==1){alert("GroundHeight is "+ getGroundHeight(controls.target.x,controls.target.z,controls.target.y));}
   camera.getWorldDirection(forward);
   forward.y = 0; forward.normalize();
   right.crossVectors(forward,new THREE.Vector3(0,1,0)).normalize();
