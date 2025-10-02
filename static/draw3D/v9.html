@@ -187,7 +187,8 @@ function animate(){
   camera.getWorldDirection(forward);
   forward.y = 0; forward.normalize();
   right.crossVectors(forward,new THREE.Vector3(0,1,0)).normalize();
-
+  groundHeight = getGroundHeight(controls.target.x,controls.target.z,controls.target.y);
+  
   // 前後左右移動
   camera.position.addScaledVector(forward, moveForward);
   controls.target.addScaledVector(forward, moveForward);
@@ -199,7 +200,6 @@ function animate(){
   velocityY += gravity * 0.1;
   camera.position.y += velocityY;
   controls.target.y += velocityY;
-  groundHeight = getGroundHeight(controls.target.x,controls.target.z,controls.target.y);
   // 着地判定
   if(controls.target.y <= groundHeight){
     controls.target.y = groundHeight;
