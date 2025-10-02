@@ -182,10 +182,11 @@ function getGroundHeight(x, z, maxYLimit){
 const forward = new THREE.Vector3();
 const right = new THREE.Vector3();
 const groundHeight = 50;
-
+let count=1;
 function animate(){
   requestAnimationFrame(animate);
-  alert(getGroundHeight(controls.target.x,controls.target.z,controls.target.y));
+  count +=1;
+  if(count%50=1){alert(getGroundHeight(controls.target.x,controls.target.z,controls.target.y));}
   camera.getWorldDirection(forward);
   forward.y = 0; forward.normalize();
   right.crossVectors(forward,new THREE.Vector3(0,1,0)).normalize();
