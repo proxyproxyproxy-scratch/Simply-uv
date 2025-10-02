@@ -1,0 +1,13 @@
+function getGroundHeight(x, z, maxYLimit){
+  let maxY = -Infinity;
+  for (const c of cubes) {
+    const half = blockSize/2;
+    if (x >= c.x - half && x <= c.x + half &&
+        z >= c.z - half && z <= c.z + half) {
+      const topY = c.y + blockSize;
+      // maxYLimit 以下のブロックだけ考慮
+      if (topY <= maxYLimit && topY > maxY) maxY = topY;
+    }
+  }
+  return (maxY === -Infinity) ? 0 : maxY;
+}
