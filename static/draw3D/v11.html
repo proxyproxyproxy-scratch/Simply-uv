@@ -205,8 +205,8 @@ function animate(){
   camera.position.y += velocityY;
   controls.target.y += velocityY;
   // 着地判定
-  if(controls.target.y <= groundHeight){
-    controls.target.y = groundHeight;
+  if(controls.target.y <= groundHeight+eyeHeight){
+    controls.target.y = groundHeight+eyeHeight;
     camera.position.y = groundHeight + offsetY;
     velocityY = 0;
     onGround = true;
