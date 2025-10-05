@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Three.js FPS with joystick & jump</title>
+<style>
+body { margin:0; overflow:hidden; }
+canvas { display:block; }
+#joystick {
+  position: fixed; bottom: 20px; left: 20px;
+  width: 200px; height: 200px; border-radius: 50%;
+  background-color: #ffffffcc; touch-action: none;
+}
+#jumpBtn {
+  position: fixed; bottom: 50px; right: 20px;
+  width: 80px; height: 80px; border-radius: 50%;
+  background-color: #ffffffcc; font-size: 20px;
+  text-align: center; line-height: 80px;
+  user-select: none; touch-action: none;
+}
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="joystick"></div>
+<div id="jumpBtn">Jump</div>
+
+<script src="https://unpkg.com/three@0.137.4/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.137.4/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
+
+<script>
+// =======================
+// 基本設定
+// =======================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 5, 500);
+camera.position.set(0,100,1);
+
+const renderer = new THREE.WebGLRenderer({canvas:document.getElementById('canvas')});
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableZoom = false;
+controls.enablePan = false;
+controls.target.set(0,100,0);
+controls.update();
+
+scene.add(new THREE.AmbientLight(0xffffff,0.6));
+const dirLight = new THREE.DirectionalLight(0xffffff,0.6);
+dirLight.position.set(100,200,100);
+scene.add(dirLight);
+
+// =======================
+// ブロック設定
+// =======================
+const blockSize = 25;
+const eyeHeight = blockSize*1.5;
+
+// テクスチャ読み込み
+const textureSoil   = new THREE.TextureLoader().load("images/soil.png");
+textureSoil.magFilter = THREE.NearestFilter;
+textureSoil.minFilter = THREE.NearestMipMapNearestFilter;
+
+const textureGravel = new THREE.TextureLoader().load("images/gravel.png");
+textureGravel.magFilter = THREE.NearestFilter;
+textureGravel.minFilter = THREE.NearestMipMapNearestFilter;
+
+// ブロックタイプ（4x3のタイルアトラス想定）
+const CubeTypes = { soil:{texture:textureSoil}, grass:{texture:textureSoil}, gravel:{texture:textureGravel} };
+
+// ブロック保存用配列
+const cubes = [];
+
+function createBlock(x,y,z,type='soil'){
+  const geometry = new THREE.BoxGeometry(blockSize,blockSize,blockSize);
+  const cubeType = CubeTypes[type] || CubeTypes.soil;
+
+  const tileUvWidth  = 1/4;
+  const tileUvHeight = 1/3;
+  function applyFaceUV(faceIndex, tx, ty){
+    const uvs = geometry.attributes.uv.array;
+    const offset = faceIndex*4*2;
+    const u0=tx*tileUvWidth, v0=1-(ty+1)*tileUvHeight;
+    const u1=(tx+1)*tileUvWidth, v1=1-ty*tileUvHeight;
+    uvs[offset]   = u0; uvs[offset+1] = v1;
+    uvs[offset+2] = u1; uvs[offset+3] = v1;
+    uvs[offset+4] = u0; uvs[offset+5] = v0;
+    uvs[offset+6] = u1; uvs[offset+7] = v0;
+  }
+
+  applyFaceUV(0,1,1); applyFaceUV(1,0,1);
+  applyFaceUV(2,1,0); applyFaceUV(3,1,2);
+  applyFaceUV(4,1,1); applyFaceUV(5,3,1);
+
+  geometry.attributes.uv.needsUpdate = true;
+
+  const material = new THREE.MeshLambertMaterial({map:cubeType.texture});
+  const cube = new THREE.Mesh(geometry,material);
+  cube.position.set(x,y+blockSize/2,z);
+  scene.add(cube);
+  cubes.push({ mesh:cube, x, y, z, type });
+}
+
+// 地面生成
+for(let i=-5;i<=5;i++) for(let j=-5;j<=5;j++) createBlock(i*blockSize,0,j*blockSize,'soil');
+// gravel配置
+for(let i=-5;i<=5;i++) createBlock(i*blockSize,blockSize,i*blockSize,'gravel');
+createBlock(0,2*blockSize,0,'gravel');
+
+// =======================
+// ジョイスティック操作
+// =======================
+const joystick = nipplejs.create({
+  zone: document.getElementById('joystick'),
+  mode:'static',
+  position:{left:'50%',top:'50%'},
+  size:200,
+  color:'blue',
+  multitouch:true
+});
+
+let moveForward=0, moveRight=0;
+joystick.on('move',(evt,data)=>{
+  const rad = data.angle.radian;
+  moveForward = Math.sin(rad)*data.distance*0.02;
+  moveRight   = Math.cos(rad)*data.distance*0.02;
+});
+joystick.on('end',()=>{ moveForward=0; moveRight=0; });
+
+// =======================
+// ジャンプ
+// =======================
+let velocityY=0;
+const gravity=-0.8, jumpSpeed=3.1;
+let onGround=true;
+
+const jumpBtn = document.getElementById('jumpBtn');
+const jumpHandler = ()=>{ if(onGround){ velocityY=jumpSpeed; onGround=false; } };
+jumpBtn.addEventListener('touchstart', jumpHandler);
+jumpBtn.addEventListener('pointerdown', jumpHandler);
+
+window.addEventListener('keydown',(e)=>{
+  if(e.code==='Space' && onGround){ velocityY=jumpSpeed; onGround=false; }
+});
+
+// =======================
+// 衝突判定・横登り処理
+// =======================
+function getBlockAt(x,z,maxY){
+  const half = blockSize/2;
+  let candidates = cubes.filter(c=>{
+    return x >= c.x-half && x <= c.x+half &&
+           z >= c.z-half && z <= c.z+half &&
+           c.y <= maxY;
+  });
+  if(candidates.length===0) return null;
+  return candidates.reduce((a,b)=> (a.y>b.y)?a:b);
+}
+
+// =======================
+// アニメーション
+// =======================
+const forward = new THREE.Vector3();
+const right   = new THREE.Vector3();
+
+function animate(){
+  requestAnimationFrame(animate);
+
+  camera.getWorldDirection(forward);
+  forward.y=0; forward.normalize();
+  right.crossVectors(forward,new THREE.Vector3(0,1,0)).normalize();
+
+  // 次の位置計算（横移動）
+  let dx = moveForward*forward.x + moveRight*right.x;
+  let dz = moveForward*forward.z + moveRight*right.z;
+  let targetX = controls.target.x + dx;
+  let targetZ = controls.target.z + dz;
+
+  // 衝突判定
+  const block = getBlockAt(targetX,targetZ,controls.target.y);
+  if(block){
+    const diffY = block.y + blockSize - (controls.target.y - eyeHeight);
+    if(diffY <= blockSize && diffY > 0){
+      // 1段だけ登る
+      controls.target.y += diffY;
+      camera.position.y += diffY;
+      controls.target.x += dx;
+      controls.target.z += dz;
+      camera.position.x += dx;
+      camera.position.z += dz;
+    } else if(diffY <=0){
+      // すり抜けない場合はそのまま
+      controls.target.x += dx;
+      controls.target.z += dz;
+      camera.position.x += dx;
+      camera.position.z += dz;
+    } // else 高すぎるので移動キャンセル
+  } else {
+    // ブロックなしなら自由に移動
+    controls.target.x += dx;
+    controls.target.z += dz;
+    camera.position.x += dx;
+    camera.position.z += dz;
+  }
+
+  // ジャンプ/重力
+  const offsetY = camera.position.y - controls.target.y;
+  velocityY += gravity*0.1;
+  camera.position.y += velocityY;
+  controls.target.y += velocityY;
+
+  // 着地判定
+  const groundBlock = getBlockAt(controls.target.x,controls.target.z,controls.target.y);
+  const groundY = groundBlock ? groundBlock.y + blockSize : 0;
+  if(controls.target.y <= groundY + eyeHeight){
+    controls.target.y = groundY + eyeHeight;
+    camera.position.y = controls.target.y + offsetY;
+    velocityY = 0;
+    onGround = true;
+  }
+
+  controls.update();
+  renderer.render(scene,camera);
+}
+animate();
+
+// =======================
+// リサイズ
+// =======================
+window.addEventListener('resize',()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+</script>
+</body>
+</html>
