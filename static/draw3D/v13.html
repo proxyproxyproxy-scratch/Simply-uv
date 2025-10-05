@@ -37,7 +37,7 @@ canvas { display:block; }
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 5, 500);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
 camera.position.set(0,100,1);
 
 const renderer = new THREE.WebGLRenderer({canvas:document.getElementById('canvas')});
