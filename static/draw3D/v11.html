@@ -110,9 +110,10 @@ function createBlock(x,y,z,type='soil'){
   applyFaceUV(5, 3, 1);
 
   geometry.attributes.uv.needsUpdate = true;
-  //上がデバックしたが本番
-  const material = new THREE.MeshLambertMaterial({map:texture, wireframe:true});
-  //const material = new THREE.MeshLambertMaterial({map:texture});
+  //デバッグ時
+  //const material = new THREE.MeshLambertMaterial({map:texture, wireframe:true});
+  //本番
+  const material = new THREE.MeshLambertMaterial({map:texture});
   
   const cube = new THREE.Mesh(geometry,material);
   cube.position.set(x,y+blockSize/2,z);
