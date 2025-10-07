@@ -66,6 +66,11 @@ textureGrass.magFilter = THREE.NearestFilter;
 textureGrass.minFilter = THREE.NearestMipMapNearestFilter;
 textureGrass.generateMipmaps = false;
 
+const textureSoil   = new THREE.TextureLoader().load("images/soil.png");
+textureSoil.magFilter = THREE.NearestFilter;
+textureSoil.minFilter = THREE.NearestMipMapNearestFilter;
+textureSoil.generateMipmaps = false;
+
 const textureGravel = new THREE.TextureLoader().load("images/gravel.png");
 textureGravel.magFilter = THREE.NearestFilter;
 textureGravel.minFilter = THREE.NearestFilter;
