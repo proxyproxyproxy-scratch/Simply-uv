@@ -61,10 +61,10 @@ const blockSize = 25;
 const eyeHeight = blockSize*1.5;
 
 // テクスチャ読み込み
-const textureSoil   = new THREE.TextureLoader().load("images/soil.png");
-textureSoil.magFilter = THREE.NearestFilter;
-textureSoil.minFilter = THREE.NearestMipMapNearestFilter;
-textureSoil.generateMipmaps = false;
+const textureGrass   = new THREE.TextureLoader().load("images/grass.png");
+textureGrass.magFilter = THREE.NearestFilter;
+textureGrass.minFilter = THREE.NearestMipMapNearestFilter;
+textureGrass.generateMipmaps = false;
 
 const textureGravel = new THREE.TextureLoader().load("images/gravel.png");
 textureGravel.magFilter = THREE.NearestFilter;
@@ -72,12 +72,12 @@ textureGravel.minFilter = THREE.NearestFilter;
 textureGravel.generateMipmaps = false;
 
 // ブロックタイプ（4x3のタイルアトラス想定）
-const CubeTypes = { soil:{texture:textureSoil}, grass:{texture:textureSoil}, gravel:{texture:textureGravel} };
+const CubeTypes = { soil:{texture:textureSoil}, grass:{texture:textureGrass}, gravel:{texture:textureGravel} };
 
 // ブロック保存用配列
 const cubes = [];
 
-function createBlock(x,y,z,type='soil'){
+function createBlock(x,y,z,type='grass'){
   const geometry = new THREE.BoxGeometry(blockSize,blockSize,blockSize);
   const cubeType = CubeTypes[type] || CubeTypes.soil;
 
@@ -108,7 +108,7 @@ function createBlock(x,y,z,type='soil'){
 }
 
 // 地面生成
-for(let i=-5;i<=5;i++) for(let j=-5;j<=5;j++) createBlock(i*blockSize,0,j*blockSize,'soil');
+for(let i=-5;i<=5;i++) for(let j=-5;j<=5;j++) createBlock(i*blockSize,0,j*blockSize,'grass');
 // gravel配置
 for(let i=-5;i<=5;i++) createBlock(i*blockSize,blockSize,i*blockSize,'gravel');
 createBlock(0,2*blockSize,0,'gravel');
