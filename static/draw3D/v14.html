@@ -177,76 +177,58 @@ const right   = new THREE.Vector3();
 let isClimbing = false;
 let climbRemaining = 0;
 const climbSpeed = 5; // 1秒で5ブロック登るペース（調整可）
-
 function animate(){
   requestAnimationFrame(animate);
-
   camera.getWorldDirection(forward);
   forward.y=0; forward.normalize();
   right.crossVectors(forward,new THREE.Vector3(0,1,0)).normalize();
-
+  // 次の位置計算（横移動）
   let dx = moveForward*forward.x + moveRight*right.x;
   let dz = moveForward*forward.z + moveRight*right.z;
   let targetX = controls.target.x + dx;
   let targetZ = controls.target.z + dz;
-
-  // ==== 登り判定 ====
-  if(!isClimbing){
-    const block = getBlockAt(targetX,targetZ,controls.target.y);
-    if(block){
-      const diffY = block.y + blockSize - (controls.target.y - eyeHeight);
-      if(diffY <= blockSize && diffY > 0){
-        isClimbing = true;
-        climbRemaining = Math.min(diffY, 1.5); // 登る残り距離を記憶
-      } else if(diffY <= 0){
-        // 平地または下り
-        controls.target.x += dx;
-        controls.target.z += dz;
-        camera.position.x += dx;
-        camera.position.z += dz;
-      }
-    } else {
+  // 衝突判定 
+  // 衝突判定 
+  const block = getBlockAt(targetX,targetZ,controls.target.y);
+  if(block){
+    const diffY = block.y + blockSize - (controls.target.y - eyeHeight);
+    if(diffY <= blockSize && diffY > 0){
+      // 登りをスムーズに補間（lerp）
+      const climb = Math.min(diffY, 1.5); // 最大1.5ずつ登る
+      controls.target.y += climb * 0.0001;
+      camera.position.y += climb * 0.0001;
+      controls.target.x += dx;
+      controls.target.z += dz;
+      camera.position.x += dx; camera.position.z += dz;
+    } else if(diffY <= 0){
+      // 平地または下り
       controls.target.x += dx;
       controls.target.z += dz;
       camera.position.x += dx;
       camera.position.z += dz;
     }
-  }
-
-  // ==== 登坂中 ====
-  if(isClimbing){
-    const climbStep = Math.min(climbSpeed * 0.016, climbRemaining); // 60fps想定で1/60秒ごと
-    controls.target.y += climbStep;
-    camera.position.y += climbStep;
-    climbRemaining -= climbStep;
-
+  } else {
+    // ブロックなしなら自由に移動
     controls.target.x += dx;
     controls.target.z += dz;
     camera.position.x += dx;
     camera.position.z += dz;
-
-    if(climbRemaining <= 0){
-      isClimbing = false;
-    }
-  }
-
-  // ==== 重力・ジャンプ ====
+  } 
+  // ジャンプ/重力
   const offsetY = camera.position.y - controls.target.y;
-  velocityY += gravity * 0.1;
+  velocityY += gravity*0.1;
   camera.position.y += velocityY;
   controls.target.y += velocityY;
-
+  // 着地判定
   const groundBlock = getBlockAt(controls.target.x,controls.target.z,controls.target.y);
   const groundY = groundBlock ? groundBlock.y + blockSize : 0;
   if(controls.target.y <= groundY + eyeHeight){
     controls.target.y = groundY + eyeHeight;
-    camera.position.y = controls.target.y + offsetY;
-    velocityY = 0;
-    onGround = true;
-  }
-
-  controls.update();
-  renderer.render(scene,camera);
+    camera.position.y = controls.target.y + offsetY; 
+    velocityY = 0; onGround = true; 
+  } 
+  controls.update(); 
+  renderer.render(scene,camera); 
 }
 
 animate();
