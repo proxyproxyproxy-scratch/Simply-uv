@@ -195,8 +195,8 @@ function animate(){
     if(diffY <= blockSize && diffY > 0){
       // 登りをスムーズに補間（lerp）
       const climb = Math.min(diffY, 1.5); // 最大1.5ずつ登る
-      controls.target.y += climb * 0.1;
-      camera.position.y += climb * 0.1;
+      controls.target.y += climb * 0.01;
+      camera.position.y += climb * 0.01;
       controls.target.x += dx;
       controls.target.z += dz;
       camera.position.x += dx;
