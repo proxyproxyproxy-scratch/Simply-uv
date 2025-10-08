@@ -174,9 +174,7 @@ function getBlockAt(x,z,maxY){
 const forward = new THREE.Vector3();
 const right   = new THREE.Vector3();
 
-let isClimbing = false;
-let climbRemaining = 0;
-const climbSpeed = 5; // 1秒で5ブロック登るペース（調整可）
+
 function animate(){
   requestAnimationFrame(animate);
   camera.getWorldDirection(forward);
@@ -195,11 +193,8 @@ function animate(){
     if(diffY <= blockSize && diffY > 0){
       // 登りをスムーズに補間（lerp）
       const climb = Math.min(diffY, 1.5); // 最大1.5ずつ登る
-      controls.target.y += climb * 0.0001;
-      camera.position.y += climb * 0.0001;
-      controls.target.x += dx;
-      controls.target.z += dz;
-      camera.position.x += dx; camera.position.z += dz;
+      controls.target.y += climb * 0.5;
+      camera.position.y += climb * 0.5;
     } else if(diffY <= 0){
       // 平地または下り
       controls.target.x += dx;
